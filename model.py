@@ -12,8 +12,8 @@ from keras.wrappers.scikit_learn import KerasClassifier
 from keras.utils import np_utils
 #Import tensorflow and disable the v2 behavior and eager mode
 import tensorflow as tf
-tf.compat.v1.disable_eager_execution()
-tf.compat.v1.disable_v2_behavior()
+# tf.compat.v1.disable_eager_execution()
+# tf.compat.v1.disable_v2_behavior()
 
 #Library to validate the model
 from sklearn.model_selection import cross_val_score, KFold, train_test_split

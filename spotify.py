@@ -1,3 +1,4 @@
+import operator
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import spotipy.util as util
@@ -14,7 +15,7 @@ import warnings
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy.sparse import csr_matrix, hstack
-from model import *
+#from model import *
 
 def train_model(rec_playlist_df,rec_track_names):
 
@@ -27,7 +28,6 @@ def train_model(rec_playlist_df,rec_track_names):
     
     v=TfidfVectorizer(sublinear_tf=True, ngram_range=(1, 6), max_features=10000)
     X_names_sparse = v.fit_transform(track_names)
-    X_names_sparse.shape
 
     # Analyze feature importances
     # from sklearn.ensemble._forest import RandomForestRegressor, RandomForestClassifier
@@ -37,8 +37,8 @@ def train_model(rec_playlist_df,rec_track_names):
     y_train = playlist_df['ratings']
     forest = RandomForestClassifier(random_state=42, max_depth=5, max_features=12) # Set by GridSearchCV below
     forest.fit(X_train, y_train)
-    importances = forest.feature_importances_
-    indices = np.argsort(importances)[::-1]
+    # importances = forest.feature_importances_
+    # indices = np.argsort(importances)[::-1]
 
     # Print the feature rankings
     # print("Feature ranking:")
@@ -58,7 +58,7 @@ def train_model(rec_playlist_df,rec_track_names):
 
     X_scaled = StandardScaler().fit_transform(X_train)
 
-    pca = decomposition.PCA().fit(X_scaled)   
+    # pca = decomposition.PCA().fit(X_scaled)   
 
     # plt.figure(figsize=(10,7))
     # plt.plot(np.cumsum(pca.explained_variance_ratio_), color='k', lw=2)
@@ -74,8 +74,8 @@ def train_model(rec_playlist_df,rec_track_names):
     X_pca = pca1.fit_transform(X_scaled)
 
 
-    tsne = TSNE(random_state=17)
-    X_tsne = tsne.fit_transform(X_scaled)
+    # tsne = TSNE(random_state=17)
+    # X_tsne = tsne.fit_transform(X_scaled)
 
     
     #print(X_pca,X_names_sparse)
@@ -98,30 +98,32 @@ def train_model(rec_playlist_df,rec_track_names):
     tree_grid = GridSearchCV(tree, tree_params, cv=skf, n_jobs=-1, verbose=True)
 
     tree_grid.fit(X_train_last, y_train)
-    tree_grid.best_estimator_, tree_grid.best_score_
+    # print(tree_grid.best_estimator_)
+    # print(tree_grid.best_score_)
 
-    parameters = {'max_features': [4, 7, 8, 10], 'min_samples_leaf': [1, 3, 5, 8], 'max_depth': [3, 5, 8]}
-    rfc = RandomForestClassifier(n_estimators=100, random_state=42, 
-                                n_jobs=-1, oob_score=True)
-    gcv1 = GridSearchCV(rfc, parameters, n_jobs=-1, cv=skf, verbose=1)
-    gcv1.fit(X_train_last, y_train)
-    gcv1.best_estimator_, gcv1.best_score_
+    # parameters = {'max_features': [4, 7, 8, 10], 'min_samples_leaf': [1, 3, 5, 8], 'max_depth': [3, 5, 8]}
+    # rfc = RandomForestClassifier(n_estimators=100, random_state=42, 
+    #                             n_jobs=-1, oob_score=True)
+    # gcv1 = GridSearchCV(rfc, parameters, n_jobs=-1, cv=skf, verbose=1)
+    # gcv1.fit(X_train_last, y_train)
+    # print(gcv1.best_estimator_)
+    # print(gcv1.best_score_)
 
     # from sklearn.neighbors import KNeighborsClassifier
 
-    knn_params = {'n_neighbors': range(1, 10)}
-    knn = KNeighborsClassifier(n_jobs=-1)
+    # knn_params = {'n_neighbors': range(1, 10)}
+    # knn = KNeighborsClassifier(n_jobs=-1)
 
-    knn_grid = GridSearchCV(knn, knn_params, cv=skf, n_jobs=-1, verbose=True)
-    knn_grid.fit(X_train_last, y_train)
-    knn_grid.best_params_, knn_grid.best_score_
+    # knn_grid = GridSearchCV(knn, knn_params, cv=skf, n_jobs=-1, verbose=True)
+    # knn_grid.fit(X_train_last, y_train)
+    # knn_grid.best_params_, knn_grid.best_score_
     
         
     X_test_names = v.transform(rec_track_names)
 
     rec_playlist_df=rec_playlist_df[["acousticness", "danceability", "duration_ms", 
                             "energy", "instrumentalness",  "key", "liveness",
-                            "loudness", "mode", "speechiness", "tempo", "valence"]]
+                            "loudness", "speechiness", "tempo", "valence"]]
 
     tree_grid.best_estimator_.fit(X_train_last, y_train)
     rec_playlist_df_scaled = StandardScaler().fit_transform(rec_playlist_df)
@@ -129,7 +131,7 @@ def train_model(rec_playlist_df,rec_track_names):
     X_test_last = csr_matrix(hstack([rec_playlist_df_pca, X_test_names]))
     y_pred_class = tree_grid.best_estimator_.predict(X_test_last)
 
-    print(y_pred_class)
+    # print(y_pred_class)
 
     rec_playlist_df['ratings']=y_pred_class
     rec_playlist_df = rec_playlist_df.sort_values('ratings', ascending = False)
@@ -137,80 +139,54 @@ def train_model(rec_playlist_df,rec_track_names):
 
     return rec_playlist_df
 
-def get_songs_features(sp,ids):
-
-    meta = sp.track(ids)
-    features = sp.audio_features(ids)
-
-    # meta
-    name = meta['name']
-    album = meta['album']['name']
-    artist = meta['album']['artists'][0]['name']
-    release_date = meta['album']['release_date']
-    length = meta['duration_ms']
-    popularity = meta['popularity']
-    ids =  meta['id']
-
-    # features
-    acousticness = features[0]['acousticness']
-    danceability = features[0]['danceability']
-    energy = features[0]['energy']
-    instrumentalness = features[0]['instrumentalness']
-    liveness = features[0]['liveness']
-    valence = features[0]['valence']
-    loudness = features[0]['loudness']
-    speechiness = features[0]['speechiness']
-    tempo = features[0]['tempo']
-    key = features[0]['key']
-    time_signature = features[0]['time_signature']
-
-    track = [name, album, artist, ids, release_date, popularity, length, danceability, acousticness,
-            energy, instrumentalness, liveness, valence, loudness, speechiness, tempo, key, time_signature]
-    columns = ['name','album','artist','id','release_date','popularity','length','danceability','acousticness','energy','instrumentalness',
-                'liveness','valence','loudness','speechiness','tempo','key','time_signature']
-    return track,columns
-
 def recommendations(token,emmotion_value):
-
+    """Get recommendations based on emotion"""
+    
     if token:
         sp = spotipy.Spotify(auth=token)
     else:
         print("Can't get token")
+        return
 
     userId=sp.current_user()['id']
 
     if userId:
         features = []
         playlistIdUrl=[]
+        #Get user's playlist
         user_all_Playlists = sp.current_user_playlists(limit=50,offset=0)
-        for item in user_all_Playlists['items']:
-            if item['external_urls']['spotify'] not in playlistIdUrl:
-                playlistIdUrl.append( item['external_urls']['spotify'])
-
+        if user_all_Playlists:
+            for item in user_all_Playlists['items']:
+                if item['external_urls']['spotify'] not in playlistIdUrl:
+                    playlistIdUrl.append( item['external_urls']['spotify'])
+        else:
+            print('No playlists found')
+            return
+        
         track_ids = []
         track_names = []
 
         for playlistId in playlistIdUrl:
             Playlist = sp.user_playlist(userId, playlistId)
-            tracks = Playlist["tracks"]
-            songs = tracks["items"]
-            for i in range(0, len(songs)):
-                if songs[i]['track']['id'] != None and songs[i]['track']['id'] not in track_ids: # Removes the local tracks in your playlist if there is any
-                    track_ids.append(songs[i]['track']['id'])
-                    track_names.append(songs[i]['track']['name'])
+            songs = Playlist["tracks"]["items"]
+            for index in range(0, len(songs)):
+                if songs[index]['track']['id'] and songs[index]['track']['id'] not in track_ids:
+                    track_ids.append(songs[index]['track']['id'])
+                    track_names.append(songs[index]['track']['name'])
 
-        for i in range(0,len(track_ids)):
-            audio_features = sp.audio_features(track_ids[i])
-            for track in audio_features:      
-                if track is None:
-                    features.append({'danceability': 0, 'energy': 0, 'key': 0, 'loudness': 0, 'mode': 0, 'speechiness': 0, 'acousticness': 0, 'instrumentalness': 0, 'liveness': 0, 'valence': 0, 'tempo': 0, 'type': 'audio_features', 'id': '00000', 'uri': 'spotify:track:0', 'track_href': 'https://api.spotify.com/', 'analysis_url': 'https://api.spotify.com/', 'duration_ms': 0, 'time_signature': 0})
-                else:
-                    features.append(track)
+        # print('Track IDs: ', track_ids)
+        #Get feature values
+        # for i in range(0,len(track_ids)):
+        #     audio_features = sp.audio_features(track_ids[i])
+        #     for feature in audio_features:      
+        #         if feature is None:
+        #             features.append({'danceability': 0, 'energy': 0, 'key': 0, 'loudness': 0, 'speechiness': 0, 'acousticness': 0, 'instrumentalness': 0, 'liveness': 0, 'valence': 0, 'tempo': 0, 'type': 'audio_features', 'id': '00000', 'uri': 'spotify:track:0', 'track_href': 'https://api.spotify.com/', 'analysis_url': 'https://api.spotify.com/', 'duration_ms': 0, 'time_signature': 0})
+        #         else:
+        #             features.append(feature)
                     
-        #print(features)
         rec_tracks = []
-        for i in features: 
-            rec_tracks += sp.recommendations(seed_tracks=[i['id']], limit=int(len(features)/2))['tracks'];
+        for id in track_ids: 
+            rec_tracks += sp.recommendations(seed_tracks=[id], limit=100)['tracks']
         
         rec_track_ids = []
         rec_track_names = []
@@ -218,46 +194,81 @@ def recommendations(token,emmotion_value):
             rec_track_ids.append(i['id'])
             rec_track_names.append(i['name'])
 
-        rec_track_mood=[]
+        # for trackId in rec_track_ids:
+        #     preds=get_songs_features(sp,trackId)
+        #     mood=predict_mood(trackId,preds)
+        #     obj={'track':trackId,'mood':mood}
+        #     rec_track_mood.append(obj)
 
-        for trackId in rec_track_ids:
-            preds=get_songs_features(sp,trackId)
-            mood=predict_mood(trackId,preds)
-            obj={'track':trackId,'mood':mood}
-            rec_track_mood.append(obj)
-
-        print("print test")
-        print(rec_track_mood)
-        # rec_features = []
-        # for i in range(0,len(rec_track_ids)):
-        #     rec_audio_features = sp.audio_features(rec_track_ids[i])
-        #     for track in rec_audio_features:
-        #         rec_features.append(track)
+        # print("print test")
+        # print(rec_track_mood)
+        rec_features = []
+        for i in range(0,len(rec_track_ids)):
+            rec_audio_features = sp.audio_features(rec_track_ids[i])
+            for track in rec_audio_features:
+                rec_features.append(track)
             
-        # rec_playlist_df = pd.DataFrame(rec_features, index = rec_track_ids)
-        # rec_playlist_df.head()
+        rec_playlist_df = pd.DataFrame(rec_features, index = rec_track_ids)
+        rec_playlist_df.head()
 
-        # rec_playlist_df=train_model(rec_playlist_df,rec_track_names)
+        rec_playlist_df=train_model(rec_playlist_df,rec_track_names)
 
             
-        # # Pick the top ranking tracks to add your new playlist 9, 10 will work
-        # recs_to_add = rec_playlist_df[rec_playlist_df['ratings']==emmotion_value]['index'].values.tolist()
-        # # print(recs_to_add)
-        # # recs_to_add = recs_to_add[:4]
-        # # print("Records to add: ", len(recs_to_add))
+        # Pick the top ranking tracks to add your new playlist 9, 10 will work
+        recs_to_add = rec_playlist_df['index'].values.tolist()
+        mood = 0.9
 
-        # # print(len(rec_tracks)) 
-        # # print(rec_playlist_df.shape)
+        # print(recs_to_add)
+        # recs_to_add = recs_to_add[:4]
+        # print("Records to add: ", len(recs_to_add))
 
-        #rec_track=[]
-        ## rec_array = np.reshape(recs_to_add, (2, 2))
+        # print(len(rec_tracks)) 
+        # print(rec_playlist_df.shape)
+
+        rec_track=[]
+        # rec_array = np.reshape(recs_to_add, (2, 2))
         
-        # for trackId in recs_to_add:
-        #     trackUrl='http://open.spotify.com/track/'+str(trackId)
-        #     if trackUrl not in rec_track:
-        #         rec_track.append(trackUrl)
-        
-        return rec_track_mood
+        for trackId in recs_to_add:
+            track_feature = [t for t in rec_features if t['id'] == trackId]
+            if track_feature:
+                track_feature = track_feature[0]
+            else:
+                print('Not found for ', trackId)
+                continue
+            trackUrl='http://open.spotify.com/track/'+str(trackId)
+            if mood < 0.10:
+                if (0 <= track_feature["valence"] <= (mood + 0.15)
+                and track_feature["danceability"] <= (mood*8)
+                and track_feature["energy"] <= (mood*10)):
+                    rec_track.append({'url': trackUrl, 'valence': track_feature["valence"] })
+            elif 0.10 <= mood < 0.25:
+                if ((mood - 0.075) <= track_feature["valence"] <= (mood+ 0.075)
+                and track_feature ["danceability"] <= (mood*4)
+                and track_feature["energy"] <= (mood*5)):
+                    rec_track.append({'url': trackUrl, 'valence': track_feature["valence"] })
+            elif 0.25 <= mood < 0.50:
+                if ((mood - 0.05) <= track_feature["valence"] <= (mood+ 0.05)
+                and track_feature ["danceability"] <= (mood*1.75)
+                and track_feature["energy"] <= (mood*1.75)):
+                    rec_track.append({'url': trackUrl, 'valence': track_feature["valence"] })
+            elif 0.50 <= mood < 0.75:
+                if ((mood - 0.075) <= track_feature["valence"] <= (mood+ 0.075)
+                and track_feature ["danceability"] <= (mood/2.5)
+                and track_feature["energy"] <= (mood/2)):
+                    rec_track.append({'url': trackUrl, 'valence': track_feature["valence"] })
+            elif 0.75 <= mood < 0.90:
+                if ((mood - 0.075) <= track_feature["valence"] <= (mood+ 0.075)
+                and track_feature ["danceability"] <= (mood/2)
+                and track_feature["energy"] <= (mood/1.75)):
+                    rec_track.append({'url': trackUrl, 'valence': track_feature["valence"] })
+            elif mood >= 0.90:
+                if ((mood - 0.15) <= track_feature["valence"] <= 1
+                and track_feature ["danceability"] <= (mood/1.75)
+                and track_feature["energy"] <= (mood/1.5)):
+                    rec_track.append({'url': trackUrl, 'valence': track_feature["valence"] })
+        print(rec_track)
+        rec_track.sort(key=operator.itemgetter('valence'), reverse=True)
+        return rec_track
 
         # playlist_recs = sp.user_playlist_create(username, 
         #                                         name='Recommended Songs for Playlist by Amit - {}'.format(sourcePlaylist['name']))
@@ -268,5 +279,6 @@ def recommendations(token,emmotion_value):
 
     else:
         return ("Can't get User")
-token='BQBPjiHLvnZNEAFoUN3y8DWHAYgmMg_MEnjTJJo77I2g8YLJPYSMCQWASAFjCcY3MZ53SJZ5ZB0C-CpqKd2NkN_w2xn1WXrPF-OlGlTL_htdqAOV-d0AMQaw1sNQ7sa_tCtG45fyjMzsKEdF5qJOfrtgIOyvb9G5Xh8h9yf-fqpRg7Mz-kTyf5le46AgMB6u_r1o'
+token="BQCuJXsBtDOhX_IaEAH_lUZ-7k8R7caoCCkpxxOgooIFpNZdx2NUdGdSyypDUB_joEJdikXk1XA-ddBJe8nyq0r92xRBIFv9B-FkFA0M1Xu0nVOU-MJRdmIsp5npshhGs84r8oTu70t-pkpWJ586ltZeAVErMIX15GV67yNq7yvMpactCNZoFxXWcq73adrukTzlUcgwaHCuxv2PT5VLDgNTH9V0iqOoNtLdugfBnO0ZVQ"
+
 recommendations(token,1)
