@@ -4,10 +4,10 @@ from enum import Enum
 
 class EmotionsMood(Enum):
     """Creating constants to assign to different moods"""
-    Calm = 2 #Calm
-    Energetic = 4 
-    happy = 1
-    sad = 3
+    Calm = 1 #Calm
+    Energetic = 2 
+    happy = 2
+    sad = 0
 
 
 def get_songs_features(sp,ids):
@@ -76,12 +76,18 @@ def recommendations(token,emmotion_value):
             rec_tracks += sp.recommendations(seed_tracks=[id], seed_genres=['indian, happy, calm, chill'], limit=2, min_valence=0.3, min_popularity=60)['tracks']        
 
         for track in rec_tracks:
+            imageUrl=''
+            if track['album']['images']:
+                imageUrl=track['album']['images'][0]['url']
+            trackUrl=track['external_urls']['spotify']
+            name=track['name']
             features=get_songs_features(sp,track["id"])
             mood=predict_mood(features)
-            if mood.upper()==EmotionsMood(emmotion_value).name.upper():
-                trackUrl='http://open.spotify.com/track/'+str(track["id"])
+            # print( mood.upper())
+            # print(EmotionsMood(emmotion_value).name.upper())
+            if mood.upper()==EmotionsMood(emmotion_value).name.upper():                
                 if trackUrl not in recommended_track:
-                    recommended_track.append(trackUrl)
+                    recommended_track.append({'imageUrl': imageUrl,'trackUrl':trackUrl,'name':name})
         return recommended_track
 
         # playlist_recs = sp.user_playlist_create(username, 
@@ -92,5 +98,5 @@ def recommendations(token,emmotion_value):
         #     sp.user_playlist_add_tracks(username, playlist_recs['id'], i)
 
     else:
-        return ("Can't get User")
+        return ("Token expired!!!")
 
