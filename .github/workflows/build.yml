@@ -28,4 +28,4 @@ jobs:
           context: .
           file: ./s/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ github.repository }}/server:${{ github.sha }}
+          tags: amitk12/hackathon/ml:${{ github.sha }}
