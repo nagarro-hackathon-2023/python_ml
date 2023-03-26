@@ -26,6 +26,5 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./s/Dockerfile
           push: true
           tags: amitk12/hackathon/ml:${{ github.sha }}
