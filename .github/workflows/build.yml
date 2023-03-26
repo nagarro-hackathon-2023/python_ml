@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       -
-        name: Set up QEMU
+        name: Set up Docker
         uses: docker/setup-qemu-action@v2
       -
         name: Set up Docker Buildx
@@ -25,5 +25,7 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v4
         with:
+          context: .
+          file: Dockerfile
           push: true
           tags: user/app:latest
